@@ -1,0 +1,48 @@
+
+3*"Here is the diff:\n```\n{diff_text}\n```"str
+•õ"You are an AI code reviewer. You will be given a git diff. Identify any obvious bugs or anti-patterns. Suggest improvements to variable names, docstrings, or missing tests. For each issue, output JSON entries with: {'file_path': <path>, 'line': <line_number>, 'comment': <advice>}."str
+"role"str
+
+0int
+"user"str
+	"system"str
+ÒÁ"
+    Construct a few-shot + instruction prompt to send to the LLM.
+    We give it context: ‚ÄúBelow is a git diff. Provide high-level feedback, point out obvious bugs,
+    suggest better variable names, docstrings, or missing tests. Be concise, and return JSON
+    with a list of comments, each containing: file_path, line_number, comment_text.‚Äù
+    "str
+	"content"str	diff_text (list"¥*
+(
+ (
+system_msg"#id#:Bstr(
+&
+ (:user_msg"#id#:Bstr$
+"
+ (1"#new-object#Bdict 
+
+	 (
+"	#map-set#:	 
+
+ (0"	#map-set#:$
+"
+ (-"#new-object#Bdict 
+
+	 ("	#map-set#: 
+
+ (,"	#map-set#:'
+%
+ ("#unknown-value#Blist&
+$
+ ("
+#is-exact#:Bbool
+
+ ("
+#assume#:8
+6
+ ("#set-field# __collection_size:Bint&
+$
+ ("#array-add-last#:&
+$
+ ("#array-add-last#:
+ (*GC:\Users\zaidm\OneDrive\Desktop\AI-PR-Reviewer\reviewer\llm_reviewer.py

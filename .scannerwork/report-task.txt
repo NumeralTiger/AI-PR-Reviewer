@@ -1,0 +1,7 @@
+organization=numeraltiger
+projectKey=NumeralTiger_AI-PR-Reviewer
+serverUrl=https://sonarcloud.io
+serverVersion=8.0.0.64123
+dashboardUrl=https://sonarcloud.io/dashboard?id=NumeralTiger_AI-PR-Reviewer
+ceTaskId=AZc6CN4hBzHbC74FuiU-
+ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZc6CN4hBzHbC74FuiU-
