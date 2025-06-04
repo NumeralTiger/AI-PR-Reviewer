@@ -1,0 +1,26 @@
+Metadata-Version: 2.4
+Name: ai_code_reviewer
+Version: 0.1.0
+Summary: An AI Code Reviewer tool combining LLM feedback and SonarQube metrics.
+Home-page: <your_project_repository_url_if_any>
+Author: Your Name / Organization
+Author-email: your.email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: python-dotenv>=0.15.0
+Requires-Dist: requests>=2.25.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# AI-PR-Reviewer
+LLM-Powered Automated Code Reviewer
