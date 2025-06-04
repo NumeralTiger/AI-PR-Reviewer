@@ -11,6 +11,7 @@ GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
 GITHUB_API_URL = "https://api.github.com"
 
 # OpenAI (or chosen LLM) settings
+api_key = "nbhb5b23SFEWN"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 # Adjust the endpoint if using Azure or other LLM providers

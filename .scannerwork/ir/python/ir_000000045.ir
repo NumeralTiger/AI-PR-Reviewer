@@ -1,0 +1,84 @@
+
+"fetch"str
+"git"str
+	"origin"str
+
+"base_sha"str
+!"{base_sha}..{head_sha}"str
+
+"head_sha"str
+"-U0"str
+"diff"str
+truebool
+¯¥"
+    Use `git diff` to get only the changed lines between base and head.
+    Returns a dict mapping file paths to lists of changed line ranges or snippets.
+    "str
+
+0intlist"Î<
+:
+, ,(info"&
+reviewer.diff_extractorget_pr_info,
+*
+- -(base_sha"#array-read#:,
+*
+. .(head_sha"#array-read#:'
+%
+1 1(7
+"#unknown-value#Blist&
+$
+1 1(7"
+#is-exact#:
+Bbool
+
+1 1(7"
+#assume#:8
+6
+1 1(7"#set-field# __collection_size:
+Bint&
+$
+1 1(7"#array-add-last#:
+&
+$
+1 1(7"#array-add-last#:
+&
+$
+1 1(7"#array-add-last#:
+	&
+$
+1 1(7"#array-add-last#:
+B
+@
+1 1(D"
+
+subprocessrun:
+Bsubprocess.CompletedProcess'
+%
+4 4(9"#unknown-value#Blist&
+$
+4 4(9"
+#is-exact#:Bbool
+
+4 4(9"
+#assume#:8
+6
+4 4(9"#set-field# __collection_size:Bint&
+$
+4 4(9"#array-add-last#:&
+$
+4 4(9"#array-add-last#:&
+$
+4 4(9"#array-add-last#:&
+$
+4 4(9 "#array-add-last#:!
+
+5 5(!"#unknown-value#%
+#
+5 5(""#get-field# PIPE:!L
+J
+3 8(#result"
+
+subprocessrun:"Bsubprocess.CompletedProcess2
+0
+9 9($	diff_text"#get-field# stdout:#
+< <($*IC:\Users\zaidm\OneDrive\Desktop\AI-PR-Reviewer\reviewer\diff_extractor.py
