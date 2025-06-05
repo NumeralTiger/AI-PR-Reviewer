@@ -7,3 +7,12 @@ __pycache__/
 .scannerwork/
 output/
 tmp.diff
+build/
+*.egg-info/
+*.log
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+ai_code_reviewer.egg-info/
