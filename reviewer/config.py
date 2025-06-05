@@ -19,5 +19,5 @@ OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 # SonarQube settings
 SONAR_HOST_URL = os.getenv("SONAR_HOST_URL", "https://sonarcloud.io")
 SONAR_TOKEN = os.getenv("SONAR_TOKEN")  # Generated in SonarQube for API access
-SONAR_PROJECT_KEY = os.getenv("SONAR_PROJECT_KEY", "ai-code-reviewer-demo")
-SONAR_PROJECT_NAME = os.getenv("SONAR_PROJECT_NAME", "AI Code Reviewer Demo")
+SONAR_PROJECT_KEY = os.getenv("SONAR_PROJECT_KEY", "NumeralTiger_AI-PR-Reviewer")
+SONAR_PROJECT_NAME = os.getenv("SONAR_PROJECT_NAME", "AI-PR-Reviewer")

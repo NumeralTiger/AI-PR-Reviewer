@@ -16,19 +16,20 @@ setup(
     # Add your orchestrator script's module if it's not in a package
     # For run_review.py at the root, ensure it can be found or package it too.
     # If run_review.py is at the root, entry_points will refer to it.
-    py_modules=['run_review'], # Make run_review.py installable
     install_requires=[
-        "python-dotenv>=0.15.0", # Specify versions as appropriate
-        "requests>=2.25.0",
-        # Add any other dependencies your project has (e.g., from a requirements.txt)
+        "requests>=2.28.0",
+        "PyGithub>=1.79.0",
+        "python-dotenv>=1.0.0",
+        "dotenv",
+        "setuptools"
     ],
     entry_points={
         "console_scripts": [
             "run-ai-review=run_review:main",  # This creates a command-line callable script
         ],
     },
-    author="Your Name / Organization",
-    author_email="your.email@example.com",
+    author="ZM",
+    author_email="zaidmohiuddin6@gmail.com",
     description="An AI Code Reviewer tool combining LLM feedback and SonarQube metrics.",
     long_description=long_description,
     long_description_content_type="text/markdown",
