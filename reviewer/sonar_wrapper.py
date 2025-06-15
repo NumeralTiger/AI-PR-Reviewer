@@ -262,24 +262,15 @@ def aggregate_and_write_report(llm_comments_markdown: str, sonar_report_markdown
         f.write(final_report)
     print(f"Combined review report generated at: {output_file_path}")
 
-# Removed the old aggregate_results function as its logic is now split and enhanced.
 # The if __name__ == "__main__": block is for testing sonar_wrapper.py independently.
-# It's good practice to keep it or adapt it for new functions.
 if __name__ == "__main__":
-    # Example of how to test the new functions (ensure config is set up)
-    if not (SONAR_TOKEN and SONAR_PROJECT_KEY and SONAR_HOST_URL): #
+    if not (SONAR_TOKEN and SONAR_PROJECT_KEY and SONAR_HOST_URL): 
         print("Error: SonarQube environment variables (SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_HOST_URL) must be set.") #
     else:
         try:
             print("Testing SonarQube integration...")
-            # 1. Run scanner (optional, can be run manually first)
-            # run_sonar_scanner() # Be cautious running this automatically during tests if not intended
-            
-            # 2. Wait for analysis (if scanner was run programmatically)
-            # analysis_key = wait_for_sonar_analysis()
-            # print(f"Analysis Key: {analysis_key}") #
 
-            # 3. Fetch issues for the project
+            # Fetch issues for the project
             issues = fetch_sonar_issues(SONAR_PROJECT_KEY) #
             if issues:
                 print(f"\nFetched {len(issues)} issues. First 3:")
@@ -288,11 +279,11 @@ if __name__ == "__main__":
             else:
                 print("\nNo issues fetched.")
 
-            # 4. Fetch metrics for the project
+            # Fetch metrics for the project
             metrics = fetch_sonar_metrics(SONAR_PROJECT_KEY) #
             print("\nSonarQube Metrics:", metrics)
 
-            # 5. Format SonarQube part of the report
+            # Format SonarQube part of the report
             sonar_markdown = format_sonarqube_report(issues, metrics)
             print("\nFormatted SonarQube Report (Markdown Preview):")
             print(sonar_markdown)

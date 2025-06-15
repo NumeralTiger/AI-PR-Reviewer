@@ -10,6 +10,9 @@ venv/
 ai_code_reviewer/build/
 ai_code_reviewer/lib/
 
+ai_pr_reviewer.egg-info/
+ai_code_reviewer.egg-info/
+
 .idea/          
 .vscode/        =
 *.iml             

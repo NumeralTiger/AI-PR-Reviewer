@@ -1,4 +1,3 @@
-# run_review.py
 import argparse
 import os
 import sys # For sys.exit
@@ -16,11 +15,11 @@ def main():
     args = parser.parse_args()
 
     # --- Configuration Check ---
-    if not config.OPENAI_API_KEY or config.OPENAI_API_KEY == "nbhb5b23SFEWN": #
+    if not config.OPENAI_API_KEY: 
         print("Error: OPENAI_API_KEY is not configured or is a placeholder. Please set it in your .env file or environment variables.") #
         sys.exit(1)
         
-    sonarqube_configured = bool(config.SONAR_TOKEN and config.SONAR_PROJECT_KEY and config.SONAR_HOST_URL) #
+    sonarqube_configured = bool(config.SONAR_TOKEN and config.SONAR_PROJECT_KEY and config.SONAR_HOST_URL)
     if not sonarqube_configured:
         print("Warning: SonarQube TOKEN, PROJECT_KEY, or HOST_URL not fully configured. SonarQube analysis will be skipped.") #
         print(f"  SONAR_TOKEN set: {'Yes' if config.SONAR_TOKEN else 'No'}") #
@@ -30,13 +29,18 @@ def main():
 
     # --- 1. Get Diff Content ---
     diff_text_content = None
-    pr_number_for_report = args.pr_number #
+    pr_number_for_report = args.pr_number 
 
-    if args.diff_file: #
-        print(f"Using provided diff file: {args.diff_file}") #
+    if args.diff_file: 
+        print(f"Using provided diff file: {args.diff_file}")
         try:
-            with open(args.diff_file, 'r', encoding='utf-8') as f: #
-                diff_text_content = f.read() #
+            try:
+                with open(args.diff_file, 'r', encoding='utf-8') as f:
+                    diff_text_content = f.read()
+            except UnicodeDecodeError:
+                print(f"Warning: Could not decode '{args.diff_file}' as UTF-8. Trying latin-1 encoding...")
+                with open(args.diff_file, 'r', encoding='latin-1') as f:
+                    diff_text_content = f.read()
             if not diff_text_content.strip():
                 print(f"Error: Diff file '{args.diff_file}' is empty or contains only whitespace.")
                 sys.exit(1)
@@ -158,7 +162,7 @@ def main():
 
     try:
         sonar_wrapper.aggregate_and_write_report(
-            llm_feedback_markdown=llm_feedback_md,
+            llm_comments_markdown=llm_feedback_md,
             sonar_report_markdown=sonar_report_md,
             pr_number=pr_number_for_report, #
             output_file_path=output_report_file_path
@@ -171,4 +175,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() #
+    main() 
