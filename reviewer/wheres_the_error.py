@@ -27,26 +27,19 @@ def fetch_data_from_api(endpoint, params=None, timeout=10):
 
 # --- BAD CODE EXAMPLES ---
 
-# Insecure way to handle (or rather, not handle) sensitive information
-# DO NOT ACTUALLY STORE API KEYS LIKE THIS IN REAL CODE!
-# This is for demonstration purposes only to show what an LLM *might* flag.
-# Instead, use environment variables or a secure secret management system.
-#
+# Pubicly exposed API keys
+
 BAD_API_KEY_EXAMPLE_1 = "your_insecurely_stored_api_key_12345"
 ANOTHER_BAD_API_KEY = "another_hardcoded_key_abcde"
 
 def process_data(data_string):
     # Missing error handling and potential for injection
-    eval(f"print({data_string})") # HIGHLY DANGEROUS! Never use eval with untrusted input.
+    eval(f"print({data_string})") # HIGHLY DANGEROUS! bad practice.
 
 def connect_to_database(db_user, db_pass):
     # This is a placeholder for a real database connection string
     # In a real scenario, this would likely involve hardcoded credentials
     # or an insecure connection string.
-    # For example:
-    # conn_string = f"Driver={{SQL Server}};Server=my_server;Database=my_db;UID={db_user};PWD={db_pass}"
-    # print(f"Attempting to connect with user: {db_user} and password: {db_pass}")
-    # return True # Simulate success
     pass # No actual connection made for safety reasons
 
 def log_user_action(user_id, action):

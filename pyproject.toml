@@ -25,4 +25,4 @@ packages = ["reviewer"]
 # define command-line script.
 # It will be named 'run-ai-review' and will execute the 'main' function
 # inside the 'run_review' module within the 'reviewer' package.
-"run-ai-review" = "reviewer.run_review:main"
+"run-ai-review" = "run_review:main"

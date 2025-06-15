@@ -28,12 +28,6 @@ def get_pr_info():
     }
 
 def checkout_pr_branch():
-    """
-    In GH Actions, 'actions/checkout' has already checked out the PR ref at HEAD.
-    Usually you don't need to do anything; but we include this for clarity.
-    """
-    # GitHub Actions sets GITHUB_REF to the PR branch ref (e.g., refs/pull/123/merge)
-    # If you needed the base branch, you could do: `git fetch origin <base_ref>`
     pass
 
 def extract_diff():
