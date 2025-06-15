@@ -1,0 +1,29 @@
+[project]
+name = "ai-pr-reviewer"
+version = "0.1.0"
+description = "LLM powered code reviewer."
+authors = [
+  { name = "Zaid Mohiuddin", email = "zaidmohiuddin6@gmail.com" },
+]
+license = { file = "LICENSE" } # We'll create this file
+readme = "README.md" # If you have a README.md file
+requires-python = ">=3.8"
+dependencies = [
+  "requests>=2.28.0",
+  "PyGithub>=1.79.0",
+  "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# This tells setuptools to look for packages under the 'reviewer' directory
+packages = ["reviewer"]
+
+[project.scripts]
+# This defines your command-line script.
+# It will be named 'run-ai-review' and will execute the 'main' function
+# inside the 'run_review' module within the 'reviewer' package.
+"run-ai-review" = "reviewer.run_review:main"

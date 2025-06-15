@@ -7,3 +7,9 @@ ai_code_reviewer.egg-info/dependency_links.txt
 ai_code_reviewer.egg-info/entry_points.txt
 ai_code_reviewer.egg-info/requires.txt
 ai_code_reviewer.egg-info/top_level.txt
+reviewer/__init__.py
+reviewer/config.py
+reviewer/diff_extractor.py
+reviewer/github_poster.py
+reviewer/llm_reviewer.py
+reviewer/sonar_wrapper.py
