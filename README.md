@@ -1,6 +1,6 @@
 # AI-Powered Code Review with SonarQube Feedback
 
-This project merges static code analysis from **SonarScanner** with AI-driven feedback from OpenAI to review your changes after you modify code or add a new feature. It acts like a senior developer approving changes, providing information on potential errors through a clear report, helping catch issues early and reducing human involvement.
+This project merges static code analysis from **SonarQube** with AI-driven feedback from OpenAI to review your changes after you modify code or add a new feature. It acts like a senior developer approving changes, providing information on potential errors through a clear report, helping catch issues early and reducing human involvement.
 
 ---
 
