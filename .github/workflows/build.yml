@@ -3,6 +3,10 @@ name: AI-Powered Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
 
 jobs:
   review-and-scan:
@@ -10,12 +14,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      actions: read # Required to download artifacts
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # Fetch depth 0 is required to correctly diff against the base branch
           fetch-depth: 0
 
       - name: Set up Python
@@ -37,14 +41,16 @@ jobs:
           unzip sonar-scanner-cli-5.0.1.3006-linux.zip
           echo "${{ runner.workspace }}/${{ github.event.repository.name }}/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Generate diff file
+      - name: Generate diff file for Pull Request
         id: generate_diff
         run: |
           set -e
+          # Diff between the PR's base and head commits
           git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > tmp.diff
           echo "Generated tmp.diff for PR #${{ github.event.pull_request.number }}"
 
       - name: Run AI Review and Generate Report
+        id: review
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -53,13 +59,9 @@ jobs:
           set -e
           run-ai-review --diff-file tmp.diff --output-file output/review_report.md --pr-number ${{ github.event.pull_request.number }}
 
-      - name: Upload Review Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: review-report
-          path: output/review_report.md
-
       - name: Post Review Summary to GitHub
+        # This step will only run if the previous steps were successful
+        if: success()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -67,9 +69,19 @@ jobs:
             const fs = require('fs');
             const { owner, repo } = context.repo;
             const pull_number = context.issue.number;
+            const reportPath = './output/review_report.md';
 
-            // Read the report content from the file
-            const reportBody = fs.readFileSync('./output/review_report.md', 'utf8');
+            if (!fs.existsSync(reportPath)) {
+              console.log('Review report file not found. Skipping comment.');
+              return;
+            }
+
+            const reportBody = fs.readFileSync(reportPath, 'utf8');
+
+            if (!reportBody) {
+              console.log('Review report is empty. Nothing to post.');
+              return;
+            }
 
             await github.rest.issues.createComment({
               owner,
