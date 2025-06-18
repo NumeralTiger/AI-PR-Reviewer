@@ -27,11 +27,11 @@ Thumbs.db
 .env             
 
 .scannerwork/    
-.sonar/ 
-sonar-project.properties           
+.sonar/      
 
 output/            
 tmp.diff           
 *.log
 *.tmp
 *.baksonar-project.properties
+sonar-project.properties

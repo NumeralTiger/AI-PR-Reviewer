@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # need full git history to compute diffs
+          fetch-depth: 0 # need full git history to compute diffs
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -88,7 +88,7 @@ jobs:
           sonar-scanner -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.host.url=$SONAR_HOST_URL \
                         -Dsonar.projectKey=ai-code-reviewer-demo \
-                        -Dsonar.sources=. 
+                        -Dsonar.sources=.
 
       - name: Fetch SonarQube Metrics & Aggregate
         run: |
@@ -109,7 +109,7 @@ jobs:
           EOF
 
       - name: Upload Summary Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: review-summary
           path: review_summary_pr_${{ steps.diff.outputs.pr_number }}.md
