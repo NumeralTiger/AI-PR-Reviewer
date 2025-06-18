@@ -1,4 +1,4 @@
-name: LLM-Powered Code Review + SonarQube
+name: AI-Powered Code Review
 
 on:
   pull_request:
@@ -7,15 +7,18 @@ on:
 jobs:
   review-and-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Needed to diff against the base branch
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.9"
 
@@ -23,104 +26,48 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -e . # Install the package in editable mode to make `run-ai-review` available
 
-      - name: Extract PR diff
-        id: diff
+      - name: Set up SonarScanner
         run: |
-          echo "diff=$(python3 -c 'from reviewer.diff_extractor import extract_diff; print(extract_diff().replace(\"%\", \"%%\"))')" >> $GITHUB_OUTPUT
-          echo "pr_number=$(python3 -c 'from reviewer.diff_extractor import get_pr_info; print(get_pr_info()[\"pr_number\"])')" >> $GITHUB_OUTPUT
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+          echo "${{ runner.workspace }}/${{ github.event.repository.name }}/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      - name: Call LLM for review
-        id: llm
+      - name: Generate diff file
+        id: generate_diff
         run: |
-          python - <<'EOF'
-          import os, json
-          from reviewer.llm_reviewer import call_openai_llm
+          git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > tmp.diff
+          echo "Generated tmp.diff for PR #${{ github.event.pull_request.number }}"
 
-          diff_text = os.getenv("DIFF_TEXT", "")
-          comments = call_openai_llm(diff_text)
-          with open("llm_comments.json", "w") as f:
-              json.dump(comments, f)
-          EOF
+      - name: Run AI Review and Generate Report
+        id: ai_review
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DIFF_TEXT: ${{ steps.diff.outputs.diff }}
-
-      - name: Post comments to GitHub
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const comments = JSON.parse(fs.readFileSync('llm_comments.json', 'utf8'));
-            const pr_number = parseInt('${{ steps.diff.outputs.pr_number }}');
-            for (const c of comments) {
-              await github.rest.pulls.createReviewComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr_number,
-                body: c.comment,
-                path: c.file_path,
-                line: c.line,
-                side: 'RIGHT'
-              });
-            }
-
-      - name: Post summary review to GitHub
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const comments = JSON.parse(fs.readFileSync('llm_comments.json', 'utf8'));
-            const pr_number = parseInt('${{ steps.diff.outputs.pr_number }}');
-            let summary = '';
-            for (const c of comments) {
-              summary += `**${c.file_path}:${c.line || 0}**\n${c.comment}\n\n`;
-            }
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr_number,
-              body: summary || "No LLM comments found.",
-              event: "COMMENT"
-            });
-
-      - name: Run SonarQube Analysis
-        env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-          unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-          export PATH="${{ runner.workspace }}/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
-          sonar-scanner -Dsonar.login=$SONAR_TOKEN \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.projectKey=ai-code-reviewer-demo \
-                        -Dsonar.sources=.
-
-      - name: Fetch SonarQube Metrics & Aggregate
-        run: |
-          python - <<'EOF'
-          from reviewer.sonar_wrapper import wait_for_sonar_analysis, fetch_sonar_metrics, aggregate_results
-          from reviewer.diff_extractor import get_pr_info
-          import json
-
-          sonar_key = wait_for_sonar_analysis()
-          metrics = fetch_sonar_metrics(sonar_key)
-          pr_info = get_pr_info()
-
-          with open("llm_comments.json", "r") as f:
-              llm_comments = json.load(f)
-
-          summary_path = aggregate_results(llm_comments, metrics, pr_info["pr_number"])
-          print(f"::set-output name=summary_path::{summary_path}")
-          EOF
-
-      - name: Upload Summary Artifact
-        uses: actions/upload-artifact@v4
+          # The run_review.py script orchestrates the entire process
+          run-ai-review --diff-file tmp.diff --output-file output/review_report.md --pr-number ${{ github.event.pull_request.number }}
+          # Read the generated report and store it in an output variable for the next step
+          REPORT_CONTENT=$(cat output/review_report.md)
+          echo "report_body<<EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Post Review Summary to GitHub
+        uses: actions/github-script@v7
         with:
-          name: review-summary
-          path: review_summary_pr_${{ steps.diff.outputs.pr_number }}.md
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = ${{ github.event.pull_request.number }};
+            const body = `${{ steps.ai_review.outputs.report_body }}`;
+            
+            // Post a single comment with the full report
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pull_number,
+              body: body
+            });
