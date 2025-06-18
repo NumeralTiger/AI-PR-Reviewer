@@ -7,79 +7,73 @@ on:
 jobs:
   review-and-scan:
     runs-on: ubuntu-latest
-    # Grant the GITHUB_TOKEN permissions to write to pull requests
     permissions:
       contents: read
       pull-requests: write
+      actions: read # Required to download artifacts
 
     steps:
-      # Step 1: Checkout code with full history for diffing
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed to diff against the base branch
+          fetch-depth: 0
 
-      # Step 2: Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
 
-      # Step 3: Install project dependencies and the tool itself
       - name: Install dependencies
         run: |
+          set -e
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install -e . # Install the package in editable mode to make `run-ai-review` available
+          pip install -e .
 
-      # Step 4: Set up SonarScanner
       - name: Set up SonarScanner
         run: |
+          set -e
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
           unzip sonar-scanner-cli-5.0.1.3006-linux.zip
           echo "${{ runner.workspace }}/${{ github.event.repository.name }}/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
 
-      # Step 5: Generate the diff file for the Pull Request
       - name: Generate diff file
         id: generate_diff
         run: |
+          set -e
           git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > tmp.diff
           echo "Generated tmp.diff for PR #${{ github.event.pull_request.number }}"
 
-      # Step 6: Run the integrated AI review tool
-      # This single command handles SonarQube scanning, LLM review, and report generation
       - name: Run AI Review and Generate Report
-        id: ai_review
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          # The SONAR_PROJECT_KEY should ideally be in your .env or sonar-project.properties file,
-          # but can also be passed as an env var.
-          # SONAR_PROJECT_KEY: "your-project-key" 
         run: |
-          # The run_review.py script orchestrates the entire process
+          set -e
           run-ai-review --diff-file tmp.diff --output-file output/review_report.md --pr-number ${{ github.event.pull_request.number }}
-          # Read the generated report and store it in an output variable for the next step
-          REPORT_CONTENT=$(cat output/review_report.md)
-          echo "report_body<<EOF" >> $GITHUB_OUTPUT
-          echo "$REPORT_CONTENT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
-      # Step 7: Post the generated report as a single comment on the PR
+      - name: Upload Review Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-report
+          path: output/review_report.md
+
       - name: Post Review Summary to GitHub
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
             const { owner, repo } = context.repo;
-            const pull_number = ${{ github.event.pull_request.number }};
-            const body = `${{ steps.ai_review.outputs.report_body }}`;
-            
-            // Post a single comment with the full report
+            const pull_number = context.issue.number;
+
+            // Read the report content from the file
+            const reportBody = fs.readFileSync('./output/review_report.md', 'utf8');
+
             await github.rest.issues.createComment({
               owner,
               repo,
               issue_number: pull_number,
-              body: body
+              body: reportBody
             });
