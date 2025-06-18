@@ -1,9 +1,5 @@
 name: LLM-Powered Code Review + SonarQube
 
-permissions:
-  contents: read
-  pull-requests: write
-
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -28,39 +24,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Extract PR diff
+      - name: Extract PR diff and number
         id: diff
         run: |
           DIFF=$(python3 -c 'from reviewer.diff_extractor import extract_diff; print(extract_diff().replace("%", "%%"))')
-          PR_NUM=$(python3 -c 'from reviewer.diff_extractor import get_pr_info; print(get_pr_info()["pr_number"])')
-          echo "DIFF_TEXT<<EOF" >> $GITHUB_ENV
-          echo "$DIFF" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          echo "PR_NUMBER=$PR_NUM" >> $GITHUB_ENV
+          PR_NUMBER=$(python3 -c 'from reviewer.diff_extractor import get_pr_info; print(get_pr_info()["pr_number"])')
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Call LLM for review
+        id: llm
         run: |
-          python - <<'EOF'
+          python3 - <<'EOF'
           import os, json
           from reviewer.llm_reviewer import call_openai_llm
 
           diff_text = os.environ.get("DIFF_TEXT", "")
-          comments = call_openai_llm(diff_text)
+          comments, _ = call_openai_llm(diff_text)
           with open("llm_comments.json", "w") as f:
               json.dump(comments, f)
           EOF
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DIFF_TEXT: ${{ env.DIFF_TEXT }}
+          DIFF_TEXT: ${{ steps.diff.outputs.diff }}
 
       - name: Post comments to GitHub
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const comments = JSON.parse(fs.readFileSync('llm_comments.json', 'utf8'));
-            const pr_number = parseInt(process.env.PR_NUMBER);
+            const pr_number = parseInt('${{ steps.diff.outputs.pr_number }}');
             for (const c of comments) {
               await github.rest.pulls.createReviewComment({
                 owner: context.repo.owner,
@@ -73,41 +70,45 @@ jobs:
               });
             }
 
-      - name: Run SonarQube Analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: Download and set up SonarScanner
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-          export PATH="$PWD/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
+          echo "${PWD}/sonar-scanner-4.8.0.2856-linux/bin" >> $GITHUB_PATH
+
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
           sonar-scanner -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.projectKey=ai-code-reviewer-demo \
+                        -Dsonar.projectKey=${{ github.repository }} \
                         -Dsonar.sources=.
 
       - name: Fetch SonarQube Metrics & Aggregate
         run: |
-          python - <<'EOF'
-          from reviewer.sonar_wrapper import wait_for_sonar_analysis, fetch_sonar_metrics, aggregate_results
+          python3 - <<'EOF'
+          from reviewer.sonar_wrapper import wait_for_sonar_analysis, fetch_sonar_metrics, aggregate_and_write_report
           from reviewer.diff_extractor import get_pr_info
           import json
 
-          sonar_key = wait_for_sonar_analysis()
-          metrics = fetch_sonar_metrics(sonar_key)
           pr_info = get_pr_info()
-
+          sonar_key = pr_info["repo_full_name"].replace("/", "_")
+          metrics = fetch_sonar_metrics(sonar_key)
           with open("llm_comments.json", "r") as f:
               llm_comments = json.load(f)
-
-          summary_path = aggregate_results(llm_comments, metrics, pr_info["pr_number"])
-          print(f"::set-output name=summary_path::{summary_path}")
+          # For demonstration, we use empty SonarQube issues and a dummy markdown
+          sonar_report_md = "SonarQube metrics: " + str(metrics)
+          llm_feedback_md = "LLM comments: " + str(llm_comments)
+          output_file = f"review_summary_pr_{pr_info['pr_number']}.md"
+          aggregate_and_write_report(llm_feedback_md, sonar_report_md, pr_info["pr_number"], output_file)
           EOF
 
       - name: Upload Summary Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: review-summary
-          path: review_summary_pr_${{ env.PR_NUMBER }}.md
+          path: review_summary_pr_${{ steps.diff.outputs.pr_number }}.md
