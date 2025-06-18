@@ -32,6 +32,8 @@ def fetch_data_from_api(endpoint, params=None, timeout=10):
 BAD_API_KEY_EXAMPLE_1 = "your_insecurely_stored_api_key_12345"
 ANOTHER_BAD_API_KEY = "another_hardcoded_key_abcde"
 
+print(BAD_API_KEY_EXAMPLE_1)
+print(ANOTHER_BAD_API_KEY)
 def process_data(data_string):
     # Missing error handling and potential for injection
     eval(f"print({data_string})") # HIGHLY DANGEROUS! bad practice.
