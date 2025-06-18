@@ -3,8 +3,7 @@
 
 This project merges static code analysis from **SonarQube** with AI-driven feedback from OpenAI to review your changes after you modify code or add a new feature. It acts like a senior developer approving changes, providing information on potential errors and security vulnerabilities through a clear report, helping catch issues early and reducing human involvement.
 
-
-![System Architecture](AI-PR-Reviewer\images\LLM_powered_code_reviewer (2).jpg)
+![System Architecture](images/LLM_powered_code_reviewer%20(2).jpg)
 ---
 
 ## Features
