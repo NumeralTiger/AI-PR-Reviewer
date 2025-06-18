@@ -52,8 +52,6 @@ jobs:
           EOF
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        # We pass `pr_number` and `diff` via outputs
-        # We need a slight hack to access them; see below.
 
       - name: Post comments to GitHub
         uses: actions/github-script@v7
