@@ -1,3 +1,7 @@
+permissions:
+  pull-requests: write
+  contents: read
+
 name: LLM-Powered Code Review + SonarQube
 
 on:
