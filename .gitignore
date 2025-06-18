@@ -14,7 +14,7 @@ ai_pr_reviewer.egg-info/
 ai_code_reviewer.egg-info/
 
 .idea/          
-.vscode/        =
+.vscode/        
 *.iml             
 .DS_Store       
 Thumbs.db         
@@ -27,10 +27,11 @@ Thumbs.db
 .env             
 
 .scannerwork/    
-.sonar/            
+.sonar/ 
+sonar-project.properties           
 
 output/            
 tmp.diff           
 *.log
 *.tmp
-*.bak
+*.baksonar-project.properties
