@@ -1,8 +1,8 @@
 name: LLM-Powered Code Review + SonarQube
 
 permissions:
-  pull-requests: write
   contents: read
+  pull-requests: write
 
 on:
   pull_request:
@@ -28,40 +28,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Extract PR diff and number
-        run: |
-          python3 - <<EOF
-          from reviewer.diff_extractor import extract_diff, get_pr_info
-          diff = extract_diff()
-          with open("diff.txt", "w") as f:
-              f.write(diff)
-          pr_info = get_pr_info()
-          with open("pr_number.txt", "w") as f:
-              f.write(str(pr_info["pr_number"]))
-          EOF
-
-      - name: Read PR info into outputs
+      - name: Extract PR diff
         id: diff
         run: |
-          echo "diff<<EOF" >> $GITHUB_OUTPUT
-          cat diff.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "pr_number=$(cat pr_number.txt)" >> $GITHUB_OUTPUT
+          DIFF=$(python3 -c 'from reviewer.diff_extractor import extract_diff; print(extract_diff().replace("%", "%%"))')
+          PR_NUM=$(python3 -c 'from reviewer.diff_extractor import get_pr_info; print(get_pr_info()["pr_number"])')
+          echo "DIFF_TEXT<<EOF" >> $GITHUB_ENV
+          echo "$DIFF" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "PR_NUMBER=$PR_NUM" >> $GITHUB_ENV
 
       - name: Call LLM for review
-        id: llm
         run: |
           python - <<'EOF'
           import os, json
           from reviewer.llm_reviewer import call_openai_llm
 
-          diff_text = """${{ steps.diff.outputs.diff }}"""
+          diff_text = os.environ.get("DIFF_TEXT", "")
           comments = call_openai_llm(diff_text)
           with open("llm_comments.json", "w") as f:
               json.dump(comments, f)
           EOF
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DIFF_TEXT: ${{ env.DIFF_TEXT }}
 
       - name: Post comments to GitHub
         uses: actions/github-script@v7
@@ -70,7 +60,7 @@ jobs:
           script: |
             const fs = require('fs');
             const comments = JSON.parse(fs.readFileSync('llm_comments.json', 'utf8'));
-            const pr_number = parseInt('${{ steps.diff.outputs.pr_number }}');
+            const pr_number = parseInt(process.env.PR_NUMBER);
             for (const c of comments) {
               await github.rest.pulls.createReviewComment({
                 owner: context.repo.owner,
@@ -92,7 +82,7 @@ jobs:
           sudo apt-get install -y unzip
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
           unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-          export PATH="${{ runner.workspace }}/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
+          export PATH="$PWD/sonar-scanner-4.8.0.2856-linux/bin:$PATH"
           sonar-scanner -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.host.url=$SONAR_HOST_URL \
                         -Dsonar.projectKey=ai-code-reviewer-demo \
@@ -113,10 +103,11 @@ jobs:
               llm_comments = json.load(f)
 
           summary_path = aggregate_results(llm_comments, metrics, pr_info["pr_number"])
-          with open("summary_path.txt", "w") as f:
-              f.write(summary_path)
+          print(f"::set-output name=summary_path::{summary_path}")
           EOF
 
-      - name: Read Summary Path
-        id: summary
-        run:
+      - name: Upload Summary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-summary
+          path: review_summary_pr_${{ env.PR_NUMBER }}.md
