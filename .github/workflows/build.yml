@@ -108,7 +108,7 @@ jobs:
           EOF
 
       - name: Upload Summary Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: review-summary
           path: review_summary_pr_${{ steps.diff.outputs.pr_number }}.md
