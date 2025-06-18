@@ -11,6 +11,14 @@ def calculate_area_rectangle(length, width):
     if length < 0 or width < 0:
         raise ValueError("Length and width cannot be negative.")
     return length * width
+#literally hard coded trash function
+def odd_even(num):
+    if num ==1:
+        print("odd") 
+    if num ==2:
+        print("even") 
+    else:
+        print("i dont know")
 
 def fetch_data_from_api(endpoint, params=None, timeout=10):
     """
