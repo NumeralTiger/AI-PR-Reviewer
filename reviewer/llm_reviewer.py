@@ -21,7 +21,7 @@ def build_prompt(diff_text: str, sonar_issues: list = None) -> list:
         "  - Suggestions for better variable names, function signatures, docstrings, and comments.",
         "  - Missing test cases or areas where testing could be improved.",
         "  - Misplaced API keys or other sensitive data.",
-        "Be concise and actionable. Focus on the changes presented in the diff.",
+        "Be concise and actionable. Focus on the changes presented in the diff include what lines are problematic and are in which file.",
         "You must return a single JSON array. Do NOT return a dictionary, wrapped object, or plain object. The response must be a single array like: [{...}, {...}]."
         "Each comment object must have the following keys: 'file_path' (string, path from the diff), 'line' (integer, relevant line number from the diff), and 'comment' (string, your detailed feedback).",
         "If a comment is general to the diff and not a specific line, use 'line': 0 or omit it.",
