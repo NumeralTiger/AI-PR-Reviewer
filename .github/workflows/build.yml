@@ -13,13 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      pull-requests: write # Needed for posting comments
+      # Add this permission for SonarCloud analysis status on PRs
+      # Without this, SonarCloud might not be able to update PR status
+      checks: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           # Fetch depth 0 is required to correctly diff against the base branch
+          # Also required for SonarScanner to analyze the full project context
           fetch-depth: 0
 
       - name: Set up Python
@@ -37,9 +41,12 @@ jobs:
       - name: Set up SonarScanner
         run: |
           set -e
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner-cli-5.0.1.3006-linux.zip
-          echo "${{ runner.workspace }}/${{ github.event.repository.name }}/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+          # Using a specific, recent version of SonarScanner CLI
+          # Always check https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/ for the latest stable
+          SONAR_SCANNER_VERSION="5.0.1.3006" # Current stable as of this response
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip -O sonar-scanner-cli.zip
+          unzip sonar-scanner-cli.zip
+          echo "${{ runner.workspace }}/${{ github.event.repository.name }}/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin" >> $GITHUB_PATH
 
       - name: Generate diff file for Pull Request
         id: generate_diff
@@ -53,11 +60,38 @@ jobs:
         id: review
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          # SONAR_TOKEN and SONAR_HOST_URL are not typically used directly by 'run-ai-review'
+          # but are needed for the SonarScanner step below.
+          # SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           set -e
+          # Ensure `output` directory exists
+          mkdir -p output
           run-ai-review --diff-file tmp.diff --output-file output/review_report.md --pr-number ${{ github.event.pull_request.number }}
+
+      # --- START SonarQube/SonarCloud Integration Fix ---
+      - name: Run SonarCloud Analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed for PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # Your SonarCloud token
+        run: |
+          set -e
+          # Execute sonar-scanner with all necessary properties for PR analysis
+          sonar-scanner \
+            -Dsonar.projectKey=NumeralTiger_AI-PR-Reviewer \
+            -Dsonar.organization=NumeralTiger \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.python.version=3.9 \
+            -Dsonar.sources=. \
+            # --- Properties for Pull Request Analysis ---
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+            -Dsonar.pullrequest.base=${{ github.base_ref }} \
+            -Dsonar.pullrequest.github.repository=${{ github.repository }} \
+            -Dsonar.pullrequest.github.oauth_token=${{ secrets.GITHUB_TOKEN }}
+          # --- END SonarQube/SonarCloud Integration Fix ---
 
       - name: Post Review Summary to GitHub
         # This step will only run if the previous steps were successful
@@ -71,15 +105,31 @@ jobs:
             const pull_number = context.issue.number;
             const reportPath = './output/review_report.md';
 
-            if (!fs.existsSync(reportPath)) {
-              console.log('Review report file not found. Skipping comment.');
-              return;
+            let reportBody = '';
+
+            // --- LLM Feedback section ---
+            if (fs.existsSync(reportPath)) {
+              const llmReport = fs.readFileSync(reportPath, 'utf8');
+              if (llmReport) {
+                reportBody += `Automated Code Review Summary for PR #${pull_number}\nLLM Feedback\n${llmReport}\n`;
+              } else {
+                console.log('LLM review report is empty.');
+              }
+            } else {
+              console.log('LLM review report file not found.');
             }
 
-            const reportBody = fs.readFileSync(reportPath, 'utf8');
+            // --- SonarQube Analysis section ---
+            // You might want to fetch SonarQube results directly here if you want to include them
+            // in the same comment. This is more advanced. For now, SonarCloud handles its own PR decoration.
+            // If you want a combined report, your 'run-ai-review' script or a new step would need to
+            // fetch SonarCloud analysis status/issues and append them.
+            // For now, let's just indicate that SonarCloud analysis ran.
+            reportBody += `SonarQube Analysis\nSee details on SonarCloud: https://sonarcloud.io/project/issues?id=${process.env.SONAR_PROJECT_KEY}&pullRequest=${pull_number}\n`;
 
-            if (!reportBody) {
-              console.log('Review report is empty. Nothing to post.');
+
+            if (!reportBody.trim()) {
+              console.log('Final report body is empty. Nothing to post.');
               return;
             }
 
