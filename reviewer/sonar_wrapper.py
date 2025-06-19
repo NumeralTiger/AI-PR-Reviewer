@@ -3,13 +3,22 @@ import os
 import requests
 import time
 import base64
-from reviewer.config import SONAR_HOST_URL, SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_PROJECT_NAME #
+from reviewer.config import SONAR_HOST_URL, SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_PROJECT_NAME, SONAR_ORGANIZATION # <-- Import SONAR_ORGANIZATION
 
 def run_sonar_scanner():
     # This requires 'sonar-scanner' to be on the system PATH
     # The 'shell=True' allows the command to be executed via the system shell
     # It uses SONAR_PROJECT_KEY from config which should align with sonar-project.properties or override it.
-    cmd_string = f'sonar-scanner -Dsonar.projectKey={SONAR_PROJECT_KEY} -Dsonar.sources=. -Dsonar.host.url={SONAR_HOST_URL} -Dsonar.login={SONAR_TOKEN}' #
+    
+    # FIX: Added -Dsonar.organization to the command string
+    cmd_string = (
+        f'sonar-scanner '
+        f'-Dsonar.projectKey={SONAR_PROJECT_KEY} '
+        f'-Dsonar.organization={SONAR_ORGANIZATION} '
+        f'-Dsonar.sources=. '
+        f'-Dsonar.host.url={SONAR_HOST_URL} '
+        f'-Dsonar.login={SONAR_TOKEN}'
+    )
     print(f"Executing command via shell: {cmd_string}")
 
     try:
@@ -28,7 +37,7 @@ def run_sonar_scanner():
         raise RuntimeError(f"SonarScanner execution failed. Stderr: {e.stderr}") from e
     except FileNotFoundError:
         print(f"Error: 'sonar-scanner' not found on system PATH when using shell=True.")
-        raise FileNotFoundError("'sonar-scanner' not found. Please ensure it is installed and in PATH.")
+        raise FileNotFoundError("'sonar-scanner' not found. Please ensure it is installed and in your PATH.")
     except Exception as e:
         print(f"An unexpected error occurred during SonarScanner execution: {e}")
         raise RuntimeError(f"An unexpected error occurred during SonarScanner: {e}") from e
