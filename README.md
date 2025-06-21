@@ -16,6 +16,9 @@ This project merges static code analysis from **SonarQube** with AI-driven feedb
     * Performance and optimization
     * Maintainability
 * Generates a consolidated and clear review report in Markdown format (e.g., `output/review_report.md`), allowing for easy access to feedback without having to leaving your editor.
+## Real Life Demo
+[https://github.com/NumeralTiger/AI-PR-Reviewer/raw/main/images/Video.mp4](https://github.com/user-attachments/assets/15303fbb-d68d-47e6-8f37-5ab493c8c210)
+
 
 ---
 
