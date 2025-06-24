@@ -3,3 +3,6 @@ PyGithub>=1.79.0
 python-dotenv>=1.0.0
 dotenv
 setuptools
+chromadb 
+openai 
+tiktoken
