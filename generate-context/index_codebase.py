@@ -15,7 +15,7 @@ collection = chroma_client.get_or_create_collection("codebase")
 def get_files(path):
     for root, _, files in os.walk(path):
         for f in files:
-            if f.endswith((".js", ".ts", ".py", ".java")):
+            if f.endswith((".js", ".ts", ".py", ".java", ".md", ".yml")):
                 yield os.path.join(root, f)
 
 def chunk_text(text, size=500):
