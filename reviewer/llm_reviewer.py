@@ -4,7 +4,7 @@ from reviewer.config import OPENAI_API_KEY, OPENAI_API_URL
 import argparse
 import os
 
-def build_prompt(diff_text: str, sonar_issues: list = None) -> list:
+def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = "") -> list:
     """
     Constructs a prompt for the LLM, including git diff and optional SonarQube issues.
     """
@@ -30,6 +30,9 @@ def build_prompt(diff_text: str, sonar_issues: list = None) -> list:
     system_msg = "\n".join(system_messages)
 
     user_content_parts = [f"Here is the git diff:\n```diff\n{diff_text}\n```"]
+    
+    if code_context:
+        user_content_parts.append(f"\nRelevant code context:\n```js\n{code_context}\n```")
 
     if sonar_issues:
         user_content_parts.append("\nHere are the SonarQube issues reported for the project (consider these in your review of the diff):")
@@ -53,7 +56,7 @@ def build_prompt(diff_text: str, sonar_issues: list = None) -> list:
     ]
 
 
-def call_openai_llm(diff_text: str, sonar_issues: list = None, model: str = "gpt-4o") -> tuple[list, str]: # Changed default model to "gpt-4o"
+def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: str = "", model: str = "gpt-4o") -> tuple[list, str]:
     """
     Sends the constructed prompt to OpenAI’s Chat API.
     Returns a tuple: (list of comment dicts, raw_reply_text)
@@ -67,7 +70,7 @@ def call_openai_llm(diff_text: str, sonar_issues: list = None, model: str = "gpt
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-    prompt_messages = build_prompt(diff_text, sonar_issues)
+    prompt_messages = build_prompt(diff_text, sonar_issues, code_context)
 
     estimated_prompt_size = len(json.dumps(prompt_messages))
     if estimated_prompt_size > 120000 and "gpt-4o" in model: # gpt-4o typically has 128k context
@@ -79,7 +82,7 @@ def call_openai_llm(diff_text: str, sonar_issues: list = None, model: str = "gpt
         "model": model,
         "messages": prompt_messages,
         "temperature": 0.2,
-        "max_tokens": 2000,  # Increased max_tokens for potentially more detailed JSON output
+        "max_tokens": 2000,  # Increased max_tokens for potentially more detailed output
         "response_format": {"type": "json_object"} # This should now work with gpt-4o
     }
 
