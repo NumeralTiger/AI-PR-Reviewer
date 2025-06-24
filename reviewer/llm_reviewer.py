@@ -8,48 +8,48 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
     """
     Constructs a prompt for the LLM, including git diff and optional SonarQube issues.
     """
-    system_messages = [
-        "You are an expert AI code reviewer, acting like a senior developer.",
-        "You will be given a git diff and a list of issues reported by SonarQube (if available).",
-        "Your primary goal is to provide comprehensive feedback on the code changes in the diff.",
-        "Consider the SonarQube issues as high-priority items. You should:",
-        "  - Confirm, elaborate on, or suggest specific fixes for these SonarQube issues within the context of the diff.",
-        "  - If you believe a SonarQube issue might be a false positive or not critical in this specific context, explain your reasoning.",
-        "Beyond SonarQube's findings, provide your own insights on:",
-        "  - Potential bugs, anti-patterns, and security vulnerabilities.",
-        "  - Best practices regarding code clarity, maintainability, and performance.",
-        "  - Suggestions for better variable names, function signatures, docstrings, and comments.",
-        "  - Missing test cases or areas where testing could be improved.",
-        "  - Misplaced API keys or other sensitive data.",
-        "Be concise and actionable. Focus on the changes presented in the diff include what lines are problematic and are in which file.",
-        "You must return a single JSON array. Do NOT return a dictionary, wrapped object, or plain object. The response must be a single array like: [{...}, {...}]."
-        "Each comment object must have the following keys: 'file_path' (string, path from the diff), 'line' (integer, relevant line number from the diff), and 'comment' (string, your detailed feedback).",
-        "If a comment is general to the diff and not a specific line, use 'line': 0 or omit it.",
-        "If no specific issues are found, return an empty array []."
-    ]
-    system_msg = "\n".join(system_messages)
+    system_msg = (
+        "You are an expert AI software engineer tasked with reviewing a pull request."
+        "\nYou will be provided with:"
+        "\n  1. A git diff of the proposed changes,"
+        "\n  2. A list of SonarQube-reported issues (if any),"
+        "\n  3. Relevant surrounding code context retrieved from the main codebase."
+        "\n\nYour goal is to produce a **comprehensive review report** in JSON array format, highlighting:"
+        "\n- Critical problems or potential bugs."
+        "\n- Code style and design issues."
+        "\n- Best practice violations."
+        "\n- Potential conflicts with existing code (based on context)."
+        "\n- Suggestions for improvement: variable naming, clarity, test coverage, comments, function size."
+        "\n- Whether SonarQube issues are valid or false positives, and how to fix them."
+        "\n\nOutput MUST be an array of JSON objects, each with:"
+        "\n- 'file_path' (string)"
+        "\n- 'line' (int, or 0 if not tied to a specific line)"
+        "\n- 'comment' (detailed feedback)"
+        "\n\nReturn [] if you find nothing to comment on. DO NOT return a dictionary or plain string."
+    )
 
     user_content_parts = [f"Here is the git diff:\n```diff\n{diff_text}\n```"]
     
     if code_context:
         user_content_parts.append(f"\nRelevant code context:\n```js\n{code_context}\n```")
 
-    if sonar_issues:
-        user_content_parts.append("\nHere are the SonarQube issues reported for the project (consider these in your review of the diff):")
-        if not sonar_issues: # Handles case where sonar_issues list is explicitly passed but empty
-            user_content_parts.append("No SonarQube issues were provided or found.")
-        else:
-            for issue in sonar_issues[:20]: # Limit to avoid excessive prompt length, prioritize first N issues
-                user_content_parts.append(
-                    f"- File: {issue.get('file_path', 'N/A')}, Line: {issue.get('line', 'N/A')}, Type: {issue.get('type', 'N/A')}, Severity: {issue.get('severity', 'N/A')}, Message: {issue.get('message', 'N/A')}"
-                )
-            if len(sonar_issues) > 20:
-                user_content_parts.append(f"...and {len(sonar_issues) - 20} more SonarQube issues not listed here.")
-    else:
-        user_content_parts.append("\nNo SonarQube issues were provided for this review.")
-
     user_msg = "\n".join(user_content_parts)
-    
+
+    if sonar_issues:
+        user_msg += f"""\n### SonarQube Issues:\n"""
+        for issue in sonar_issues[:30]:  # Allow more, increase limit
+            user_msg += (
+                f"- File: {issue.get('file_path', 'N/A')}, "
+                f"Line: {issue.get('line', 'N/A')}, "
+                f"Type: {issue.get('type', 'N/A')}, "
+                f"Severity: {issue.get('severity', 'N/A')}, "
+                f"Message: {issue.get('message', 'N/A')}\n"
+            )
+        if len(sonar_issues) > 30:
+            user_msg += f"... and {len(sonar_issues) - 30} more issues.\n"
+    else:
+        user_msg += "\nNo SonarQube issues were provided."
+
     return [
         {"role": "system", "content": system_msg},
         {"role": "user", "content": user_msg}
@@ -82,7 +82,7 @@ def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: st
         "model": model,
         "messages": prompt_messages,
         "temperature": 0.2,
-        "max_tokens": 2000,  # Increased max_tokens for potentially more detailed output
+        "max_tokens": 4000,  # Increased max_tokens for potentially more detailed output
         "response_format": {"type": "json_object"} # This should now work with gpt-4o
     }
 
@@ -221,7 +221,7 @@ if __name__ == "__main__":
         markdown_output = "## LLM Feedback\nDiff file was empty or contained only whitespace.\n"
     else:
         try:
-            llm_comments, raw_llm_reply_text = call_openai_llm(diff_text, sonar_issues_list, model=args.model)
+            llm_comments, raw_llm_reply_text = call_openai_llm(diff_text, sonar_issues_list, code_context="", model=args.model)
             markdown_output = format_llm_feedback_to_markdown(llm_comments, raw_llm_reply_text)
         except ValueError as e: # Configuration error from call_openai_llm
             print(f"Configuration Error: {e}")

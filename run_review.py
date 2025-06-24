@@ -4,6 +4,9 @@ import sys # For sys.exit
 
 import requests # for direct API calls
 from reviewer import diff_extractor, llm_reviewer, sonar_wrapper, config 
+from reviewer import context_retriever
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run AI Code Review with LLM and SonarQube.") 
@@ -124,9 +127,21 @@ def main():
     print("\n--- Starting LLM Code Review ---")
     print("Requesting LLM review...") 
     # Pass SonarQube issues to the LLM for integrated feedback
+    # Get relevant code context from vector DB
+    try:
+        print("\nFetching related code context for diff...")
+        context_chunks_text = context_retriever.get_similar_chunks(diff_text_content)
+    except Exception as e:
+        print(f"Error retrieving context from ChromaDB: {e}")
+        context_chunks_text = ""
     llm_comments_list, raw_llm_reply = [], ""
     try:
-        llm_comments_list, raw_llm_reply = llm_reviewer.call_openai_llm(diff_text_content, sonar_issues_list) 
+        llm_comments_list, raw_llm_reply = llm_reviewer.call_openai_llm(
+            diff_text_content, 
+            sonar_issues_list,
+            context_chunks_text
+            ) 
+        
         print(f"Received {len(llm_comments_list)} comments from LLM.") 
     except ValueError as e: # Configuration error from LLM 
         print(f"LLM Configuration Error: {e}. Cannot proceed with LLM review.")
