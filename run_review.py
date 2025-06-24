@@ -131,6 +131,9 @@ def main():
     try:
         print("\nFetching related code context for diff...")
         context_chunks_text = context_retriever.get_similar_chunks(diff_text_content)
+        print("--- Retrieved Context for LLM ---")
+        print(context_chunks_text)
+        print("---------------------------------")
     except Exception as e:
         print(f"Error retrieving context from ChromaDB: {e}")
         context_chunks_text = ""

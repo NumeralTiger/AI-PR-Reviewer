@@ -12,47 +12,45 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
         "You are an expert AI software engineer tasked with reviewing a pull request."
         "\nYou will be provided with:"
         "\n  1. A git diff of the proposed changes,"
-        "\n  2. relevant code context,"
-        "\n  3. (optional) A list of SonarQube-reported issues (if any),"
-        "\n  Your goal is to produce a **comprehensive review report** in JSON array format, highlighting:"
-        "\n- Critical problems or potential bugs."
-        "\n- Code style and design issues."
-        "\n- Best practice violations."
-        "\n- Potential conflicts with existing code (based on context)."
-        "\n- Suggestions for improvement: variable naming, clarity, test coverage, comments, function size."
-        "\n- Whether SonarQube issues are valid or false positives, and how to fix them."
-        "\n\nOutput MUST be an array of JSON objects, each with:"
-        "\n- 'file_path' (string)"
-        "\n- 'line' (int, or 0 if not tied to a specific line)"
-        "\n- 'comment' (detailed feedback)"
-        "\n- Do not focus only on the first file or line. Analyze the diff **holistically** and provide feedback on **multiple files and functions**, especially those related to bugs, design flaws, or style violations."
-        "\n Return [] if you find nothing to comment on. DO NOT return a dictionary or plain string."
+        "\n  2. Relevant code context from the existing codebase,"
+        "\n  3. (Optional) A list of issues reported by SonarQube."
+        "\n\nYour goal is to produce a **comprehensive review report**. Your analysis must be holistic; do not stop after finding the first issue. Analyze all provided files in the diff."
+        "\n\nYour response MUST be a single JSON object with a key named `review_comments`. The value of this key must be an array of JSON objects. Each object in the array represents a single piece of feedback and must contain the following keys:"
+        "\n- `file_path` (string): The path to the file you are commenting on."
+        "\n- `line` (int): The relevant line number in the diff. Use 0 for general, non-line-specific comments."
+        "\n- `comment` (string): Your detailed feedback. This should cover potential bugs, style issues, violations of best practices, and suggestions for improvement (e.g., variable naming, clarity, test coverage)."
+        "\n\nIf you find no issues, return a JSON object with an empty array: `{\"review_comments\": []}`."
+        "\nDo not return a plain string or a list as the top-level element."
     )
 
-    user_content_parts = [f"Here is the git diff:\n```diff\n{diff_text}\n```"]
+    user_content_parts = [
+        "Please review the following git diff and provide your feedback in the requested JSON format."
+        f"\n```diff\n{diff_text}\n```"
+    ]
 
-    user_msg = "\n".join(user_content_parts)
-
-    max_context_chars = 3000
-    code_context = code_context[:max_context_chars]
-
-    if code_context:
-        user_content_parts.append(f"\nRelevant code context:\n```python\n{code_context}\n```")
-
+    # Provide SonarQube issues as hints or starting points for the review
     if sonar_issues:
-        user_msg += f"""\n### SonarQube Issues:\n"""
-        for issue in sonar_issues[:30]:  # Allow more, increase limit
-            user_msg += (
+        sonar_prompt_part = ["\n\nFor your consideration, SonarQube has identified the following potential issues. Please validate them and include your assessment in the review, along with any other issues you find."]
+        for issue in sonar_issues[:30]:  # Limit for brevity
+            sonar_prompt_part.append(
                 f"- File: {issue.get('file_path', 'N/A')}, "
                 f"Line: {issue.get('line', 'N/A')}, "
-                f"Type: {issue.get('type', 'N/A')}, "
-                f"Severity: {issue.get('severity', 'N/A')}, "
-                f"Message: {issue.get('message', 'N/A')}\n"
+                f"Message: {issue.get('message', 'N/A')}"
             )
-        if len(sonar_issues) > 30:
-            user_msg += f"... and {len(sonar_issues) - 30} more issues.\n"
+        user_content_parts.append("\n".join(sonar_prompt_part))
     else:
-        user_msg += "\nNo SonarQube issues were provided."
+        user_content_parts.append("\n\nNo SonarQube issues were provided.")
+
+    # Provide code context as supplementary material
+    max_context_chars = 3000
+    if code_context:
+        code_context = code_context[:max_context_chars]
+        user_content_parts.append(
+            "\n\nHere is some relevant context from the existing codebase to help you understand the changes:"
+            f"\n```python\n{code_context}\n```"
+        )
+    
+    user_msg = "\n".join(user_content_parts)
 
     return [
         {"role": "system", "content": system_msg},
@@ -75,7 +73,9 @@ def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: st
         "Content-Type": "application/json"
     }
     prompt_messages = build_prompt(diff_text, sonar_issues, code_context)
-
+    with open("output/debug_llm_prompt.json", "w") as f:
+        import json
+        json.dump(prompt_messages, f, indent=2)
     estimated_prompt_size = len(json.dumps(prompt_messages))
     if estimated_prompt_size > 120000 and "gpt-4o" in model: # gpt-4o typically has 128k context
         print(f"Warning: Prompt size ({estimated_prompt_size} chars) is very large even for {model}. Consider truncating if issues arise.")
