@@ -12,9 +12,9 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
         "You are an expert AI software engineer tasked with reviewing a pull request."
         "\nYou will be provided with:"
         "\n  1. A git diff of the proposed changes,"
-        "\n  2. A list of SonarQube-reported issues (if any),"
-        "\n  3. Relevant surrounding code context retrieved from the main codebase."
-        "\n\nYour goal is to produce a **comprehensive review report** in JSON array format, highlighting:"
+        "\n  2. relevant code context,"
+        "\n  3. (optional) A list of SonarQube-reported issues (if any),"
+        "\n  Your goal is to produce a **comprehensive review report** in JSON array format, highlighting:"
         "\n- Critical problems or potential bugs."
         "\n- Code style and design issues."
         "\n- Best practice violations."
@@ -25,15 +25,19 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
         "\n- 'file_path' (string)"
         "\n- 'line' (int, or 0 if not tied to a specific line)"
         "\n- 'comment' (detailed feedback)"
-        "\n\nReturn [] if you find nothing to comment on. DO NOT return a dictionary or plain string."
+        "\n- Do not focus only on the first file or line. Analyze the diff **holistically** and provide feedback on **multiple files and functions**, especially those related to bugs, design flaws, or style violations."
+        "\n Return [] if you find nothing to comment on. DO NOT return a dictionary or plain string."
     )
 
     user_content_parts = [f"Here is the git diff:\n```diff\n{diff_text}\n```"]
-    
-    if code_context:
-        user_content_parts.append(f"\nRelevant code context:\n```js\n{code_context}\n```")
 
     user_msg = "\n".join(user_content_parts)
+
+    max_context_chars = 3000
+    code_context = code_context[:max_context_chars]
+
+    if code_context:
+        user_content_parts.append(f"\nRelevant code context:\n```python\n{code_context}\n```")
 
     if sonar_issues:
         user_msg += f"""\n### SonarQube Issues:\n"""
@@ -82,7 +86,7 @@ def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: st
         "model": model,
         "messages": prompt_messages,
         "temperature": 0.2,
-        "max_tokens": 4000,  # Increased max_tokens for potentially more detailed output
+        "max_tokens": 8000,  # Increased max_tokens for potentially more detailed output
         "response_format": {"type": "json_object"} # This should now work with gpt-4o
     }
 

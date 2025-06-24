@@ -28,7 +28,7 @@ Thumbs.db
 
 .scannerwork/    
 .sonar/      
-
+chroma_data/
 output/            
 tmp.diff           
 *.log
@@ -36,4 +36,6 @@ tmp.diff
 *.baksonar-project.properties
 sonar-project.properties
 
-chroma_data/
+
+
+
