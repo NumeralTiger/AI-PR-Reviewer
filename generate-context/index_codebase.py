@@ -6,7 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-chroma_client = chromadb.Client()
+# Specify a directory to store ChromaDB data
+persist_directory = "./chroma_data" 
+chroma_client = chromadb.PersistentClient(path=persist_directory)
+
 collection = chroma_client.get_or_create_collection("codebase")
 
 def get_files(path):
@@ -25,7 +28,7 @@ def embed(texts):
     ).data
 
 print("Indexing codebase...")
-for file in get_files("your_repo_path_here"):
+for file in get_files("c:/Users/zaidm/OneDrive/Desktop/MyProjects/AI-PR-Reviewer"): 
     with open(file, "r", encoding="utf-8", errors="ignore") as f:
         chunks = chunk_text(f.read())
         embeddings = embed(chunks)
