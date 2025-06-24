@@ -35,3 +35,5 @@ tmp.diff
 *.tmp
 *.baksonar-project.properties
 sonar-project.properties
+
+chroma_data/
