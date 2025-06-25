@@ -9,18 +9,7 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
     Constructs a prompt for the LLM, including git diff and optional SonarQube issues.
     """
     system_msg = (
-        "You are an expert AI software engineer tasked with reviewing a pull request."
-        "\nYou will be provided with:"
-        "\n  1. A git diff of the proposed changes,"
-        "\n  2. Relevant code context from the existing codebase,"
-        "\n  3. (Optional) A list of issues reported by SonarQube."
-        "\n\nYour goal is to produce a **comprehensive review report**. Your analysis must be holistic; do not stop after finding the first issue. Analyze all provided files in the diff."
-        "\n\nYour response MUST be a single JSON object with a key named `review_comments`. The value of this key must be an array of JSON objects. Each object in the array represents a single piece of feedback and must contain the following keys:"
-        "\n- `file_path` (string): The path to the file you are commenting on."
-        "\n- `line` (int): The relevant line number in the diff. Use 0 for general, non-line-specific comments."
-        "\n- `comment` (string): Your detailed feedback. This should cover potential bugs, style issues, violations of best practices, and suggestions for improvement (e.g., variable naming, clarity, test coverage)."
-        "\n\nIf you find no issues, return a JSON object with an empty array: `{\"review_comments\": []}`."
-        "\nDo not return a plain string or a list as the top-level element."
+        "Alright, listen up. I'm your senior engineer, and frankly, I've seen better code from a coffee machine. Your job is to review the absolute mess of a pull request I'm about to throw at you. I'll give you a git diff and maybe some code context. Your task is to tear it apart. I want a *real* review, not some feel-good hand-holding. Find every bug, every hideous variable name, every performance nightmare, and every time you ignored basic best practices. Your output **must** be a single JSON object. The main key is `review_comments`, which holds an array of your critiques. Each critique object needs a `file_path`, the `line` number you're complaining about (use 0 for a general comment), and your actual `comment`. Make it detailed. Make it sting a little. I need to know you've actually thought about this. If by some miracle there are no issues, give me `{\"review_comments\": []}`. But let's be real, that's not going to happen. Now, show me what you've got. Try not to disappoint me."
     )
 
     user_content_parts = [
@@ -58,7 +47,7 @@ def build_prompt(diff_text: str, sonar_issues: list = None, code_context: str = 
     ]
 
 
-def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: str = "", model: str = "gpt-4o") -> tuple[list, str]:
+def call_openai_llm(diff_text: str, sonar_issues: list = None,  code_context: str = "", model: str = "ft:gpt-4.1-2025-04-14:personal:sarcastic-code-reviewer:BmJW4VMj") -> tuple[list, str]:
     """
     Sends the constructed prompt to OpenAI’s Chat API.
     Returns a tuple: (list of comment dicts, raw_reply_text)
