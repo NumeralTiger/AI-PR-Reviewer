@@ -72,7 +72,8 @@ To set up the project for development or general use, follow these steps:
     ```
 
 ---
-
+## 🖥️CLI Demo 
+https://github.com/user-attachments/assets/d3d0f7ac-3b03-4739-9be7-4cf86c2e071e
 ## Usage
 
 This tool can be triggered via a CLI command, typically after a code change or as part of a Pull Request workflow.
