@@ -8,9 +8,10 @@ This project merges static code analysis from **SonarQube** with AI-driven feedb
 
 ## Features
 
-* Analyzes code changes using a `.diff` file, making it suitable for reviewing Pull Requests.
-* Integrates **SonarScanner** for  static code analysis.
-* Provides comprehensive feedback using OpenAI's AI models, considering:
+* Analyzes code changes using a `.diff` file, examining modifications to review Pull Requests.
+* Integrates **SonarScanner** for static code analysis.
+* Applies relevant context from a **Vector DB** before generating feedback
+* Provides comprehensive feedback using a fine-tuned OpenAI AI model, considering:
     * Code best practices
     * Security vulnerabilities
     * Performance and optimization
@@ -96,8 +97,16 @@ First, you need a `.diff` file representing the code changes you want to review.
     git diff origin/main...HEAD > tmp.diff
     ```
     *(Adjust `origin/main` to your base branch name and `HEAD` to your feature branch as per your CI/CD setup.)*
+  
+**(Optional) 2. Store all potential context files from your codebase in a VectorDB**
 
-**2. Run the AI-powered review:**
+This makes sure the LLM is fed with appropriate context before it makes its review
+```bash
+python reviewer/index_codebase.py
+```
+
+
+**3. Run the AI-powered review:**
 
 Once you have your `tmp.diff` file (or your chosen diff file name) in your project's root, execute the `run-ai-review` command:
 
